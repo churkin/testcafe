@@ -23,6 +23,7 @@ import TestRunBookmark from './bookmark';
 import ClientFunctionBuilder from '../client-functions/client-function-builder';
 import ReporterPluginHost from '../reporter/plugin-host';
 import BrowserConsoleMessages from './browser-console-messages';
+import http from 'http';
 
 import { TakeScreenshotOnFailCommand } from './commands/browser-manipulation';
 import { SetNativeDialogHandlerCommand, SetTestSpeedCommand, SetPageLoadTimeoutCommand } from './commands/actions';
@@ -60,6 +61,14 @@ export default class TestRun extends Session {
         this[testRunMarker] = true;
 
         this.opts              = opts;
+
+        this.server = http.createServer(async (req, res) => {
+            const { cmd, callsite } = JSON.parse(req.body);
+            res.end(JSON.stringify(await this._enqueueCommand(cmd, callsite)));
+        });
+
+        this.server.listen(1888);
+
         this.test              = test;
         this.browserConnection = browserConnection;
 
@@ -216,12 +225,12 @@ export default class TestRun extends Session {
         if (this.errs.length && this.debugOnFail)
             await this._enqueueSetBreakpointCommand(null, this.debugReporterPluginHost.formatError(this.errs[0]));
 
-        await this.executeCommand(new TestDoneCommand());
-        this._addPendingPageErrorIfAny();
-
-        delete testRunTracker.activeTestRuns[this.id];
-
-        this.emit('done');
+        //await this.executeCommand(new TestDoneCommand());
+        //this._addPendingPageErrorIfAny();
+        //
+        //delete testRunTracker.activeTestRuns[this.id];
+        //
+        //this.emit('done');
     }
 
     _evaluate (code) {
